@@ -1,0 +1,21 @@
+<!-- Card de Análisis de IA -->
+<div class="bg-white p-6 rounded-xl shadow-md min-h-[200px] relative">
+  <h2 class="text-xl font-semibold mb-4 text-slate-900">Análisis con IA</h2>
+  @if (isLoading()) {
+    <div class="absolute inset-0 bg-white/50 flex flex-col items-center justify-center rounded-xl">
+      <svg class="spinner" viewBox="0 0 50 50">
+        <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+      </svg>
+      <p class="text-slate-600 mt-16">Gemini está procesando tu entrada...</p>
+    </div>
+  } @else if (error()) {
+    <div class="text-red-600 bg-red-100 p-4 rounded-lg">
+      <h3 class="font-bold">Error en el análisis</h3>
+      <p>{{ error() }}</p>
+    </div>
+  } @else if (currentAnalysis()) {
+    <div class="prose prose-sm max-w-none text-slate-600" [innerHTML]="currentAnalysis()"></div>
+  } @else {
+    <p class="text-slate-500">Aquí aparecerá el análisis de tu última entrada cuando la guardes.</p>
+  }
+</div>

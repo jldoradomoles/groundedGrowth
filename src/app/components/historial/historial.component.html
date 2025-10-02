@@ -1,0 +1,18 @@
+<!-- Card de Historial -->
+<div class="bg-white p-6 rounded-xl shadow-md">
+  <h2 class="text-xl font-semibold mb-4">Historial de Entradas</h2>
+  @if (pastEntries().length > 0) {
+    <div class="max-h-96 overflow-y-auto pr-2 space-y-4">
+      @for (entry of pastEntries(); track entry.date) {
+        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+          <p class="text-sm font-semibold text-slate-800 mb-1">
+            {{ entry.date.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}
+          </p>
+          <p class="text-slate-600 text-sm line-clamp-2">{{ entry.text }}</p>
+        </div>
+      }
+    </div>
+  } @else {
+    <p class="text-slate-500">Aún no tienes entradas guardadas.</p>
+  }
+</div>

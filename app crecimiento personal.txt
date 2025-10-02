@@ -1,0 +1,301 @@
+import { ChangeDetectionStrategy, Component, signal, computed, effect } from '@angular/core';
+import { bootstrapApplication } from '@angular/platform-browser';
+import 'zone.js';
+
+// --- COMPONENTE PRINCIPAL DE LA APLICACIÓN --- //
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: [
+    `
+    /* Estilos para la animación del spinner */
+    .spinner {
+      animation: rotate 2s linear infinite;
+      z-index: 2;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      margin: -25px 0 0 -25px;
+      width: 50px;
+      height: 50px;
+    }
+    .spinner .path {
+      stroke: #6366f1; /* indigo-500 */
+      stroke-linecap: round;
+      animation: dash 1.5s ease-in-out infinite;
+    }
+    @keyframes rotate {
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+    @keyframes dash {
+      0% {
+        stroke-dasharray: 1, 150;
+        stroke-dashoffset: 0;
+      }
+      50% {
+        stroke-dasharray: 90, 150;
+        stroke-dashoffset: -35;
+      }
+      100% {
+        stroke-dasharray: 90, 150;
+        stroke-dashoffset: -124;
+      }
+    }
+
+    /* Estilo para el scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9; /* slate-100 */
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1; /* slate-300 */
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8; /* slate-400 */
+    }
+    `
+  ],
+  template: `
+    <div class="bg-slate-50 min-h-screen font-sans text-slate-800">
+      <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex items-center justify-between h-16">
+            <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+              Grounded<span class="text-indigo-600">Growth</span>
+            </h1>
+            <p class="hidden sm:block text-slate-500">Tu asistente de crecimiento personal con IA</p>
+          </div>
+        </div>
+      </header>
+
+      <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 lg:gap-8">
+          
+          <!-- Columna Izquierda: Entradas y Metas -->
+          <div class="space-y-6">
+            
+            <!-- Card de Metas -->
+            <div class="bg-white p-6 rounded-xl shadow-md">
+              <h2 class="text-xl font-semibold mb-4">Mis Metas</h2>
+              <div class="flex gap-2 mb-4">
+                <input 
+                  type="text" 
+                  placeholder="Añadir una nueva meta..." 
+                  [value]="newGoal()"
+                  (input)="newGoal.set($event.target.value)"
+                  (keydown.enter)="addGoal()"
+                  class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                <button (click)="addGoal()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition shrink-0">Añadir</button>
+              </div>
+              <ul class="space-y-2">
+                @for (goal of goals(); track goal; let i = $index) {
+                  <li class="flex items-center justify-between bg-slate-100 p-2 rounded-md">
+                    <span class="text-slate-700">{{ goal }}</span>
+                    <button (click)="removeGoal(i)" class="text-slate-400 hover:text-red-500 transition">
+                      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+                    </button>
+                  </li>
+                }
+              </ul>
+            </div>
+
+            <!-- Card de Nueva Entrada -->
+            <div class="bg-white p-6 rounded-xl shadow-md">
+              <h2 class="text-xl font-semibold mb-4">Nueva Entrada de Diario</h2>
+              <textarea 
+                placeholder="¿Cómo te sientes hoy? ¿Qué ha pasado? Reflexiona aquí..."
+                rows="8"
+                [value]="journalEntry()"
+                (input)="journalEntry.set($event.target.value)"
+                class="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition mb-4">
+              </textarea>
+              <button 
+                (click)="analyzeEntry()" 
+                [disabled]="isLoading() || isAnalyzeButtonDisabled()"
+                class="w-full bg-indigo-600 text-white font-semibold py-3 rounded-lg hover:bg-indigo-700 transition disabled:bg-indigo-300 disabled:cursor-not-allowed flex items-center justify-center">
+                @if (isLoading()) {
+                  <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  <span>Analizando...</span>
+                } @else {
+                  <span>Guardar y Analizar con IA</span>
+                }
+              </button>
+            </div>
+
+          </div>
+
+          <!-- Columna Derecha: Análisis e Historial -->
+          <div class="space-y-6 mt-6 lg:mt-0">
+
+            <!-- Card de Análisis de IA -->
+            <div class="bg-white p-6 rounded-xl shadow-md min-h-[200px] relative">
+              <h2 class="text-xl font-semibold mb-4 text-slate-900">Análisis con IA</h2>
+              @if (isLoading()) {
+                <div class="absolute inset-0 bg-white/50 flex flex-col items-center justify-center rounded-xl">
+                  <svg class="spinner" viewBox="0 0 50 50">
+                    <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+                  </svg>
+                  <p class="text-slate-600 mt-16">Gemini está procesando tu entrada...</p>
+                </div>
+              } @else if (error()) {
+                <div class="text-red-600 bg-red-100 p-4 rounded-lg">
+                  <h3 class="font-bold">Error en el análisis</h3>
+                  <p>{{ error() }}</p>
+                </div>
+              } @else if (currentAnalysis()) {
+                <div class="prose prose-sm max-w-none text-slate-600" [innerHTML]="currentAnalysis()"></div>
+              } @else {
+                <p class="text-slate-500">Aquí aparecerá el análisis de tu última entrada cuando la guardes.</p>
+              }
+            </div>
+
+            <!-- Card de Historial -->
+            <div class="bg-white p-6 rounded-xl shadow-md">
+              <h2 class="text-xl font-semibold mb-4">Historial de Entradas</h2>
+              @if (pastEntries().length > 0) {
+                <div class="max-h-96 overflow-y-auto pr-2 space-y-4">
+                  @for (entry of pastEntries(); track entry.date) {
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                      <p class="text-sm font-semibold text-slate-800 mb-1">
+                        {{ entry.date.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}
+                      </p>
+                      <p class="text-slate-600 text-sm line-clamp-2">{{ entry.text }}</p>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <p class="text-slate-500">Aún no tienes entradas guardadas.</p>
+              }
+            </div>
+
+          </div>
+        </div>
+      </main>
+    </div>
+  `,
+})
+export class App {
+  // --- STATE MANAGEMENT CON SIGNALS --- //
+
+  // Señales para la UI de Metas
+  goals = signal<string[]>(['Ser más paciente', 'Aprender a programar en Rust', 'Reducir la ansiedad social']);
+  newGoal = signal<string>('');
+
+  // Señales para la UI de Entradas de Diario
+  journalEntry = signal<string>('');
+  pastEntries = signal<{ text: string; date: Date; analysis: string | null }[]>([]);
+  
+  // Señales para el estado de la API
+  currentAnalysis = signal<string | null>(null);
+  isLoading = signal<boolean>(false);
+  error = signal<string | null>(null);
+  
+  // Señal computada para deshabilitar el botón de análisis
+  isAnalyzeButtonDisabled = computed(() => this.journalEntry().trim().length < 20);
+
+  constructor() {
+    // Efecto para debug (opcional, útil en desarrollo)
+    effect(() => {
+      console.log(`Entrada actual: ${this.journalEntry().substring(0, 30)}...`);
+    });
+  }
+
+  // --- MÉTODOS DE LA CLASE --- //
+
+  addGoal(): void {
+    const goal = this.newGoal().trim();
+    if (goal) {
+      this.goals.update(currentGoals => [...currentGoals, goal]);
+      this.newGoal.set('');
+    }
+  }
+
+  removeGoal(indexToRemove: number): void {
+    this.goals.update(currentGoals => currentGoals.filter((_, index) => index !== indexToRemove));
+  }
+
+  async analyzeEntry(): Promise<void> {
+    const entryText = this.journalEntry().trim();
+    if (!entryText) return;
+
+    this.isLoading.set(true);
+    this.error.set(null);
+    this.currentAnalysis.set(null);
+
+    try {
+      const analysisResult = await this.callGeminiApi(entryText, this.goals());
+      
+      // Simular un retardo para mostrar el spinner
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      this.currentAnalysis.set(analysisResult);
+      this.pastEntries.update(entries => [
+        { text: entryText, date: new Date(), analysis: analysisResult },
+        ...entries
+      ]);
+      this.journalEntry.set('');
+    } catch (e: any) {
+      this.error.set(e.message);
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  // --- SIMULACIÓN DE LA API DE GEMINI --- //
+
+  private async callGeminiApi(entry: string, goals: string[]): Promise<string> {
+    console.log("--- Llamando a la API de Gemini (Simulación) ---");
+
+    const systemPrompt = `
+      Eres "Grounded Growth", un asistente de IA empático y constructivo. Tu objetivo es ayudar al usuario a reflexionar sobre sus entradas de diario en relación con sus metas de crecimiento personal.
+      - Analiza la entrada de diario proporcionada.
+      - Conecta los sentimientos y eventos de la entrada con las metas del usuario.
+      - Ofrece 1-2 insights o patrones que observes.
+      - Sugiere 1 acción pequeña y concreta que el usuario podría tomar.
+      - Usa un tono de apoyo y nunca juzgues.
+      - Formatea tu respuesta en HTML simple (usa <h4>, <p>, <ul>, <li>, <strong>).
+    `;
+
+    const userPrompt = `
+      **Metas del Usuario:**
+      ${goals.map(g => `- ${g}`).join('\n')}
+
+      **Entrada de Diario:**
+      "${entry}"
+    `;
+    
+    console.log("Prompt Completo:", systemPrompt + userPrompt);
+
+    // Simulación de la llamada a la API con un retardo
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        // Simular un posible error de la API
+        if (entry.toLowerCase().includes("error")) {
+          reject(new Error("No se pudo conectar con el servidor de análisis. Inténtalo de nuevo más tarde."));
+          return;
+        }
+
+        const mockResponse = `
+          <h4>Reflexiones sobre tu día</h4>
+          <p>Gracias por compartir tu reflexión. Parece que hoy ha sido un día con altibajos, especialmente en relación a tu meta de <strong>ser más paciente</strong>.</p>
+          <h4>Patrones Observados</h4>
+          <p>He notado que mencionas sentirte "frustrado" en situaciones de espera, como en el tráfico. Esto parece un disparador clave que choca directamente con tu objetivo de paciencia. Reconocer este patrón es el primer paso para poder cambiarlo.</p>
+          <h4>Sugerencia Práctica</h4>
+          <ul>
+            <li>La próxima vez que te encuentres en una situación similar, intenta este pequeño ejercicio: en lugar de enfocarte en la frustración, dedica 30 segundos a observar 3 cosas a tu alrededor que no habías notado antes. Esto puede ayudar a romper el ciclo de pensamientos negativos.</li>
+          </ul>
+          <p>Sigue así, la auto-reflexión es una herramienta muy poderosa.</p>
+        `;
+        resolve(mockResponse);
+      }, 2000); // Retardo de 2 segundos para simular la red
+    });
+  }
+}
+// --- BOOTSTRAP DE LA APLICACIÓN --- //
+bootstrapApplication(App);

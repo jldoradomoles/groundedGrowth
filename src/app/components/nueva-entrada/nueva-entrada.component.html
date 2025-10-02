@@ -1,0 +1,22 @@
+<!-- Card de Nueva Entrada -->
+<div class="bg-white p-6 rounded-xl container-shadow-md">
+  <h2 class="text-xl font-semibold mb-4">Nueva Entrada de Diario</h2>
+  <textarea 
+    placeholder="¿Cómo te sientes hoy? ¿Qué ha pasado? Reflexiona aquí..."
+    rows="8"
+    [value]="journalEntry()"
+    (input)="onJournalInput($event)"
+    class="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition mb-4">
+  </textarea>
+  <button 
+    (click)="onAnalyzeEntry()" 
+    [disabled]="isLoading() || isAnalyzeButtonDisabled()"
+    class="w-full bg-indigo-600 text-white font-semibold py-3 rounded-lg hover:bg-indigo-700 transition disabled:bg-indigo-300 disabled:cursor-not-allowed flex items-center justify-center">
+    @if (isLoading()) {
+      <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+      <span>Analizando...</span>
+    } @else {
+      <span>Guardar y Analizar con IA</span>
+    }
+  </button>
+</div>
