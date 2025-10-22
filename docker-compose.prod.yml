@@ -1,0 +1,74 @@
+# Docker Compose para GroundedGrowth - Producción
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: groundedgrowth
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: groundedgrowth_prod
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # Backend API
+  backend:
+    build: 
+      context: ./groundedgrowth-backend
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://groundedgrowth:${POSTGRES_PASSWORD}@postgres:5432/groundedgrowth_prod
+      JWT_SECRET: ${JWT_SECRET}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      PORT: 3001
+    ports:
+      - "${BACKEND_PORT:-3001}:3001"
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+    restart: unless-stopped
+    volumes:
+      - ./groundedgrowth-backend/uploads:/app/uploads
+
+  # Frontend Angular
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # Nginx para reverse proxy (opcional)
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx-prod.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - app-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
+    driver: bridge

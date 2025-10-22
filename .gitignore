@@ -43,3 +43,20 @@ Thumbs.db
 
 # API Keys and Environment Configuration
 src/app/config/environment.ts
+
+# Production environment files
+.env.production
+.env.local
+
+# SSL certificates
+ssl/
+*.pem
+*.key
+*.crt
+
+# Backups
+*.sql
+backup/
+
+# Docker volumes
+postgres_data/

@@ -1,0 +1,78 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Usuario del sistema
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  goals          Goal[]
+  journalEntries JournalEntry[]
+  aiAnalyses     AIAnalysis[]
+
+  @@map("users")
+}
+
+// Metas/Objetivos del usuario
+model Goal {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  title       String
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("goals")
+}
+
+// Entradas del diario
+model JournalEntry {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aiAnalyses  AIAnalysis[]
+
+  @@map("journal_entries")
+}
+
+// Analisis de IA
+model AIAnalysis {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  journalEntryId  String   @map("journal_entry_id")
+  analysisContent String   @map("analysis_content")
+  aiProvider      String   @map("ai_provider")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relaciones
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  journalEntry JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+
+  @@map("ai_analyses")
+}
