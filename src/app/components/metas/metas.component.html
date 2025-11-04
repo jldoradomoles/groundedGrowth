@@ -1,24 +1,150 @@
-<!-- Card de Metas -->
-<div class="container-card bg-white p-6 rounded-xl container-shadow-md">
-  <h2 class="text-xl font-semibold mb-4">Mis Metas</h2>
-  <div class="flex gap-2 mb-4">
-    <input 
-      type="text" 
-      placeholder="Añadir una nueva meta..." 
-      [value]="newGoal()"
-      (input)="onNewGoalInput($event)"
-      (keydown.enter)="addGoal()"
-      class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
-    <button (click)="addGoal()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition shrink-0">Añadir</button>
-  </div>
-  <ul class="space-y-2">
-    @for (goal of goals(); track goal; let i = $index) {
-      <li class="flex items-center justify-between bg-slate-100 p-2 rounded-md">
-        <span class="text-slate-700">{{ goal }}</span>
-        <button (click)="removeGoal(i)" class="text-slate-400 hover:text-red-500 transition">
-          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
-        </button>
-      </li>
-    }
-  </ul>
+<div class="p-6">
+      <!-- Header -->
+      <div class="mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">🎯 Mis Metas</h2>
+        <p class="text-gray-600">Define y gestiona tus objetivos de crecimiento personal</p>
+      </div>
+
+      <!-- Nueva Meta Form -->
+      <div class="bg-blue-50 rounded-lg p-4 mb-6">
+        <div class="flex gap-3">
+          <input
+            type="text"
+            [(ngModel)]="newGoalText"
+            (keyup.enter)="addGoal()"
+            placeholder="Escribe tu nueva meta..."
+            class="flex-1 px-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <button
+            (click)="addGoal()"
+            [disabled]="!newGoalText.trim() || isLoading()"
+            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            @if (isLoading()) {
+            <svg
+              class="animate-spin h-5 w-5"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+            } @else { Agregar }
+          </button>
+        </div>
+      </div>
+
+      <!-- Error Message -->
+      @if (errorMessage()) {
+      <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+        <p class="text-red-700 text-sm">{{ errorMessage() }}</p>
+      </div>
+      }
+
+      <!-- Goals List -->
+      @if (goals().length === 0 && !isLoading()) {
+      <div class="text-center py-12">
+        <div class="text-gray-400 text-6xl mb-4">🎯</div>
+        <h3 class="text-xl font-medium text-gray-600 mb-2">Aún no tienes metas</h3>
+        <p class="text-gray-500">Agrega tu primera meta para comenzar tu viaje de crecimiento</p>
+      </div>
+      } @else {
+      <div class="grid gap-4">
+        @for (goal of goals(); track goal.id) {
+        <div
+          class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow"
+        >
+          <div class="flex items-center justify-between">
+            <div class="flex-1">
+              <h3 class="font-medium text-gray-800 mb-1">{{ goal.title }}</h3>
+              @if (goal.description) {
+              <p class="text-sm text-gray-600 mb-2">{{ goal.description }}</p>
+              }
+              <div class="flex items-center gap-4 text-xs text-gray-500">
+                <span class="flex items-center gap-1"> 📅 {{ formatDate(goal.createdAt) }} </span>
+                <span class="flex items-center gap-1" [class]="getStatusClass(goal.isActive)">
+                  {{ getStatusEmoji(goal.isActive) }} {{ getStatusText(goal.isActive) }}
+                </span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 ml-4">
+              <!-- Toggle Status Button -->
+              <button
+                (click)="toggleGoalStatus(goal)"
+                class="px-3 py-1 text-xs rounded-full transition-colors"
+                [class]="
+                  goal.isActive
+                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                    : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                "
+              >
+                {{ goal.isActive ? 'Completar' : 'Reactivar' }}
+              </button>
+
+              <!-- Delete Button -->
+              <button
+                (click)="openDeleteConfirmation(goal)"
+                class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                title="Eliminar meta"
+              >
+                🗑️
+              </button>
+            </div>
+          </div>
+        </div>
+        }
+      </div>
+      }
+
+      <!-- Loading State -->
+      @if (isLoading() && goals().length === 0) {
+      <div class="text-center py-12">
+        <svg
+          class="animate-spin h-8 w-8 text-blue-600 mx-auto mb-4"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            class="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            stroke-width="4"
+          ></circle>
+          <path
+            class="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+          ></path>
+        </svg>
+        <p class="text-gray-600">Cargando metas...</p>
+      </div>
+      }
+
+      <!-- Confirmation Modal -->
+      <app-confirmation-modal
+        [isOpen]="showDeleteModal()"
+        [title]="'¿Eliminar esta meta?'"
+        [message]="getDeleteMessage()"
+        [confirmText]="'Sí, eliminar'"
+        [cancelText]="'Cancelar'"
+        [type]="'danger'"
+        (confirm)="confirmDelete()"
+        (cancel)="cancelDelete()"
+      />
 </div>

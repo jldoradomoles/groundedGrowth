@@ -4,7 +4,19 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { AIService } from '../../services/ai-backend.service';
-import { JournalService, JournalEntry, AIAnalysis } from '../../services/journal.service';
+import {
+  JournalService,
+  JournalEntry,
+  AIAnalysis as BaseAIAnalysis,
+} from '../../services/journal.service';
+
+// Extender la interfaz para incluir información de la entrada
+interface AIAnalysisWithEntry extends BaseAIAnalysis {
+  journalEntry?: {
+    content: string;
+    createdAt: string;
+  };
+}
 
 @Component({
   selector: 'app-analisis-ia',
@@ -173,33 +185,21 @@ import { JournalService, JournalEntry, AIAnalysis } from '../../services/journal
           <!-- Header del análisis -->
           <div class="bg-purple-50 px-6 py-4 border-b">
             <div class="flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+              <div class="flex items-center gap-3 flex-1">
+                <div
+                  class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0"
+                >
                   🤖
                 </div>
-                <div>
-                  <h3 class="font-semibold text-gray-900">
-                    Análisis {{ formatDate(analysis.createdAt) }}
+                <div class="flex-1 min-w-0">
+                  <h3 class="font-semibold text-gray-900 truncate">
+                    "{{ getFirstWords(analysis, 6) }}..."
                   </h3>
                   <p class="text-sm text-gray-600">
-                    Proveedor: {{ analysis.aiProvider }} •
+                    {{ formatDate(analysis.createdAt) }} • Proveedor: {{ analysis.aiProvider }} •
                     {{ formatRelativeTime(analysis.createdAt) }}
                   </p>
                 </div>
-              </div>
-              <div class="flex items-center gap-2">
-                <button
-                  (click)="toggleAnalysisExpanded(analysis.id)"
-                  class="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded-full hover:bg-purple-200 transition-colors"
-                >
-                  {{ isAnalysisExpanded(analysis.id) ? '🔼 Contraer' : '🔽 Expandir' }}
-                </button>
-                <button
-                  (click)="viewJournalEntry(analysis.journalEntryId)"
-                  class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors"
-                >
-                  📖 Ver Entrada
-                </button>
               </div>
             </div>
           </div>
@@ -207,15 +207,54 @@ import { JournalService, JournalEntry, AIAnalysis } from '../../services/journal
           <!-- Contenido del análisis -->
           <div class="px-6 py-4">
             @if (isAnalysisExpanded(analysis.id)) {
-            <div
-              class="prose max-w-none text-gray-700"
-              [innerHTML]="sanitizeHtml(analysis.analysisContent)"
-            ></div>
+            <!-- Mostrar entrada del diario si está disponible -->
+            @if (analysis.journalEntry) {
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <h4 class="text-sm font-semibold text-blue-800 mb-2 flex items-center gap-1">
+                📝 Entrada Original
+              </h4>
+              <p class="text-sm text-blue-900 whitespace-pre-wrap">
+                {{ analysis.journalEntry.content }}
+              </p>
+            </div>
+            }
+
+            <!-- Análisis completo -->
+            <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <h4 class="text-sm font-semibold text-purple-800 mb-2 flex items-center gap-1">
+                🤖 Análisis de IA
+              </h4>
+              <div
+                class="prose max-w-none text-gray-700"
+                [innerHTML]="sanitizeHtml(analysis.analysisContent)"
+              ></div>
+            </div>
+
+            <!-- Botón de contraer -->
+            <div class="mt-4 text-center">
+              <button
+                (click)="toggleAnalysisExpanded(analysis.id)"
+                class="text-sm text-purple-600 hover:text-purple-700 font-medium"
+              >
+                🔼 Contraer
+              </button>
+            </div>
             } @else {
+            <!-- Vista resumida -->
             <p
-              class="text-gray-700"
-              [innerHTML]="sanitizeHtml(truncateText(analysis.analysisContent, 200))"
+              class="text-gray-700 line-clamp-3"
+              [innerHTML]="sanitizeHtml(analysis.analysisContent)"
             ></p>
+
+            <!-- Botón de ver más -->
+            <div class="mt-3 text-center">
+              <button
+                (click)="toggleAnalysisExpanded(analysis.id)"
+                class="text-sm text-purple-600 hover:text-purple-700 font-medium"
+              >
+                Ver más →
+              </button>
+            </div>
             }
           </div>
         </div>
@@ -257,8 +296,8 @@ export class AnalisisIaComponent implements OnInit {
   private domSanitizer = inject(DomSanitizer);
 
   // Signals
-  analyses = signal<AIAnalysis[]>([]);
-  filteredAnalyses = signal<AIAnalysis[]>([]);
+  analyses = signal<AIAnalysisWithEntry[]>([]);
+  filteredAnalyses = signal<AIAnalysisWithEntry[]>([]);
   isLoading = signal(false);
   errorMessage = signal('');
 
@@ -438,6 +477,29 @@ export class AnalisisIaComponent implements OnInit {
   truncateText(text: string, maxLength: number): string {
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
+  }
+
+  // Método para obtener las primeras palabras del contenido analizado
+  getFirstWords(analysis: AIAnalysisWithEntry, wordCount: number = 5): string {
+    // Primero intentar obtener del contenido de la entrada del diario si está disponible
+    if (analysis.journalEntry?.content) {
+      const words = analysis.journalEntry.content
+        .replace(/<[^>]*>/g, '') // Eliminar HTML
+        .trim()
+        .split(/\s+/)
+        .slice(0, wordCount)
+        .join(' ');
+      return words || 'Entrada';
+    }
+
+    // Si no hay entrada, extraer del análisis mismo
+    const analysisText = analysis.analysisContent
+      .replace(/<[^>]*>/g, '') // Eliminar HTML
+      .trim();
+
+    const words = analysisText.split(/\s+/).slice(0, wordCount).join(' ');
+
+    return words || 'Análisis';
   }
 
   sanitizeHtml(html: string): SafeHtml {

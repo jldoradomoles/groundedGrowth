@@ -5,11 +5,12 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { JournalService, JournalEntry } from '../../services/journal.service';
 import { AIService } from '../../services/ai-backend.service';
 import { GoalService, Goal } from '../../services/goal.service';
+import { ConfirmationModalComponent } from '../confirmation-modal/confirmation-modal.component';
 
 @Component({
   selector: 'app-nueva-entrada',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ConfirmationModalComponent],
   template: `
     <div class="p-6">
       <!-- Header -->
@@ -220,6 +221,18 @@ import { GoalService, Goal } from '../../services/goal.service';
       </div>
       }
     </div>
+
+    <!-- Modal de confirmación de eliminación -->
+    <app-confirmation-modal
+      [isOpen]="showDeleteModal()"
+      [title]="deleteModalTitle()"
+      [message]="deleteModalMessage()"
+      [confirmText]="'Eliminar'"
+      [cancelText]="'Cancelar'"
+      [type]="'danger'"
+      (confirm)="onConfirmDelete()"
+      (cancel)="onCancelDelete()"
+    ></app-confirmation-modal>
   `,
   styleUrl: './nueva-entrada.component.scss',
 })
@@ -239,6 +252,12 @@ export class NuevaEntradaComponent implements OnInit {
   recentEntries = signal<JournalEntry[]>([]);
   goals = signal<Goal[]>([]);
   analyzingEntryId = signal<string | null>(null);
+
+  // Modal de confirmación para eliminar entradas
+  showDeleteModal = signal(false);
+  deleteModalTitle = signal('');
+  deleteModalMessage = signal('');
+  deletingEntryId = signal<string | null>(null);
 
   // Method to sanitize HTML content by converting tags to formatted text
   sanitizeHtml(html: string): SafeHtml {
@@ -453,9 +472,42 @@ export class NuevaEntradaComponent implements OnInit {
     this.clearMessages();
   }
 
-  deleteEntry(entryId: string): void {
-    if (!confirm('¿Estás seguro de que quieres eliminar esta entrada?')) return;
+  // Método para confirmar la eliminación de una entrada
+  confirmDeleteEntry(entryId: string, entryDate: string): void {
+    this.deletingEntryId.set(entryId);
 
+    const formattedDate = new Date(entryDate).toLocaleDateString('es-ES', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+
+    this.deleteModalTitle.set('¿Eliminar entrada del diario?');
+    this.deleteModalMessage.set(
+      `¿Estás seguro de que deseas eliminar la entrada del ${formattedDate}? Esta acción no se puede deshacer.`
+    );
+    this.showDeleteModal.set(true);
+  }
+
+  // Método llamado cuando se confirma la eliminación
+  onConfirmDelete(): void {
+    const entryId = this.deletingEntryId();
+    if (entryId) {
+      this.executeDelete(entryId);
+      this.showDeleteModal.set(false);
+      this.deletingEntryId.set(null);
+    }
+  }
+
+  // Método llamado cuando se cancela la eliminación
+  onCancelDelete(): void {
+    this.showDeleteModal.set(false);
+    this.deletingEntryId.set(null);
+  }
+
+  // Método que ejecuta la eliminación real
+  private executeDelete(entryId: string): void {
     this.journalService.deleteEntry(entryId).subscribe({
       next: (response) => {
         if (response.success) {
@@ -469,6 +521,15 @@ export class NuevaEntradaComponent implements OnInit {
         console.error('Error deleting entry:', error);
       },
     });
+  }
+
+  // Método obsoleto - mantener por compatibilidad pero redirigir al modal
+  deleteEntry(entryId: string): void {
+    // Buscar la entrada para obtener su fecha
+    const entry = this.recentEntries().find((e) => e.id === entryId);
+    if (entry) {
+      this.confirmDeleteEntry(entryId, entry.createdAt);
+    }
   }
 
   private clearMessages(): void {

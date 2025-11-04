@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -9,12 +9,12 @@ import { CommonModule } from '@angular/common';
     @if (isOpen) {
     <!-- Overlay oscuro -->
     <div
-      class="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity"
+      class="fixed inset-0 bg-black bg-opacity-50 z-[9998] transition-opacity"
       (click)="onCancel()"
     ></div>
 
     <!-- Modal -->
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       <div
         class="bg-white rounded-lg shadow-xl max-w-md w-full p-6 transform transition-all"
         (click)="$event.stopPropagation()"
@@ -103,7 +103,7 @@ import { CommonModule } from '@angular/common';
     `,
   ],
 })
-export class ConfirmationModalComponent {
+export class ConfirmationModalComponent implements OnChanges {
   @Input() isOpen = false;
   @Input() title = '¿Estás seguro?';
   @Input() message = 'Esta acción no se puede deshacer.';
@@ -113,6 +113,10 @@ export class ConfirmationModalComponent {
 
   @Output() confirm = new EventEmitter<void>();
   @Output() cancel = new EventEmitter<void>();
+
+  ngOnChanges() {
+    console.log('🔔 Modal isOpen changed:', this.isOpen);
+  }
 
   onConfirm(): void {
     this.confirm.emit();
