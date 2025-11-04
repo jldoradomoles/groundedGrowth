@@ -67,7 +67,7 @@ export interface AIAnalysis {
 export interface CreateAIAnalysisRequest {
     journalEntryId: string;
     goalIds?: string[];
-    aiProvider?: 'openai' | 'gemini' | 'auto';
+    aiProvider?: 'openai';
 }
 export interface ApiResponse<T = any> {
     success: boolean;

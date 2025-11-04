@@ -25,16 +25,16 @@ const getJournalEntries = async (req, res, next) => {
                         select: {
                             id: true,
                             aiProvider: true,
-                            createdAt: true
+                            createdAt: true,
                         },
                         orderBy: { createdAt: 'desc' },
-                        take: 1 // Solo el análisis más reciente
-                    }
-                }
+                        take: 1, // Solo el análisis más reciente
+                    },
+                },
             }),
             prisma.journalEntry.count({
-                where: { userId: req.user.id }
-            })
+                where: { userId: req.user.id },
+            }),
         ]);
         const totalPages = Math.ceil(total / limit);
         const response = {
@@ -44,9 +44,9 @@ const getJournalEntries = async (req, res, next) => {
                 page,
                 limit,
                 total,
-                totalPages
+                totalPages,
             },
-            message: 'Entradas del diario obtenidas exitosamente'
+            message: 'Entradas del diario obtenidas exitosamente',
         };
         res.json(response);
     }
@@ -73,14 +73,14 @@ const createJournalEntry = async (req, res, next) => {
         const newEntry = await prisma.journalEntry.create({
             data: {
                 userId: req.user.id,
-                content: content.trim()
-            }
+                content: content.trim(),
+            },
         });
         console.log(`✅ Entrada del diario creada - Usuario: ${req.user.email}`);
         const response = {
             success: true,
             data: newEntry,
-            message: 'Entrada del diario creada exitosamente'
+            message: 'Entrada del diario creada exitosamente',
         };
         res.status(201).json(response);
     }
@@ -99,13 +99,13 @@ const getJournalEntryById = async (req, res, next) => {
         const entry = await prisma.journalEntry.findFirst({
             where: {
                 id,
-                userId: req.user.id
+                userId: req.user.id,
             },
             include: {
                 aiAnalyses: {
-                    orderBy: { createdAt: 'desc' }
-                }
-            }
+                    orderBy: { createdAt: 'desc' },
+                },
+            },
         });
         if (!entry) {
             return next((0, error_middleware_1.createError)('Entrada no encontrada', 404));
@@ -113,7 +113,7 @@ const getJournalEntryById = async (req, res, next) => {
         const response = {
             success: true,
             data: entry,
-            message: 'Entrada obtenida exitosamente'
+            message: 'Entrada obtenida exitosamente',
         };
         res.json(response);
     }
@@ -134,8 +134,8 @@ const updateJournalEntry = async (req, res, next) => {
         const existingEntry = await prisma.journalEntry.findFirst({
             where: {
                 id,
-                userId: req.user.id
-            }
+                userId: req.user.id,
+            },
         });
         if (!existingEntry) {
             return next((0, error_middleware_1.createError)('Entrada no encontrada', 404));
@@ -150,13 +150,13 @@ const updateJournalEntry = async (req, res, next) => {
         // Actualizar entrada
         const updatedEntry = await prisma.journalEntry.update({
             where: { id },
-            data: { content: content.trim() }
+            data: { content: content.trim() },
         });
         console.log(`✅ Entrada del diario actualizada - Usuario: ${req.user.email}`);
         const response = {
             success: true,
             data: updatedEntry,
-            message: 'Entrada actualizada exitosamente'
+            message: 'Entrada actualizada exitosamente',
         };
         res.json(response);
     }
@@ -176,20 +176,20 @@ const deleteJournalEntry = async (req, res, next) => {
         const existingEntry = await prisma.journalEntry.findFirst({
             where: {
                 id,
-                userId: req.user.id
-            }
+                userId: req.user.id,
+            },
         });
         if (!existingEntry) {
             return next((0, error_middleware_1.createError)('Entrada no encontrada', 404));
         }
         // Eliminar entrada (los análisis de IA se eliminarán automáticamente por CASCADE)
         await prisma.journalEntry.delete({
-            where: { id }
+            where: { id },
         });
         console.log(`✅ Entrada del diario eliminada - Usuario: ${req.user.email}`);
         const response = {
             success: true,
-            message: 'Entrada eliminada exitosamente'
+            message: 'Entrada eliminada exitosamente',
         };
         res.json(response);
     }

@@ -21,8 +21,8 @@ const analyzeJournalEntry = async (req, res, next) => {
         const journalEntry = await prisma.journalEntry.findFirst({
             where: {
                 id: journalEntryId,
-                userId: req.user.id
-            }
+                userId: req.user.id,
+            },
         });
         if (!journalEntry) {
             return next((0, error_middleware_1.createError)('Entrada del diario no encontrada', 404));
@@ -34,23 +34,23 @@ const analyzeJournalEntry = async (req, res, next) => {
                 where: {
                     id: { in: goalIds },
                     userId: req.user.id,
-                    isActive: true
+                    isActive: true,
                 },
-                select: { title: true }
+                select: { title: true },
             });
-            goals = userGoals.map(g => g.title);
+            goals = userGoals.map((g) => g.title);
         }
         else {
             // Si no se especifican metas, usar todas las activas
             const userGoals = await prisma.goal.findMany({
                 where: {
                     userId: req.user.id,
-                    isActive: true
+                    isActive: true,
                 },
                 select: { title: true },
-                take: 5 // Limitar a 5 metas para no sobrecargar el prompt
+                take: 5, // Limitar a 5 metas para no sobrecargar el prompt
             });
-            goals = userGoals.map(g => g.title);
+            goals = userGoals.map((g) => g.title);
         }
         console.log(`🤖 Iniciando análisis para usuario: ${req.user.email}`);
         console.log(`📝 Entrada: ${journalEntry.content.substring(0, 100)}...`);
@@ -63,14 +63,14 @@ const analyzeJournalEntry = async (req, res, next) => {
                 userId: req.user.id,
                 journalEntryId: journalEntryId,
                 analysisContent: analysisResult.analysis,
-                aiProvider: analysisResult.aiProvider
-            }
+                aiProvider: analysisResult.aiProvider,
+            },
         });
         console.log(`✅ Análisis guardado con proveedor: ${analysisResult.aiProvider}`);
         const response = {
             success: true,
             data: newAnalysis,
-            message: 'Análisis completado y guardado exitosamente'
+            message: 'Análisis completado y guardado exitosamente',
         };
         res.status(201).json(response);
     }
@@ -91,8 +91,8 @@ const getAnalysesForEntry = async (req, res, next) => {
         const journalEntry = await prisma.journalEntry.findFirst({
             where: {
                 id: journalEntryId,
-                userId: req.user.id
-            }
+                userId: req.user.id,
+            },
         });
         if (!journalEntry) {
             return next((0, error_middleware_1.createError)('Entrada del diario no encontrada', 404));
@@ -101,14 +101,14 @@ const getAnalysesForEntry = async (req, res, next) => {
         const analyses = await prisma.aIAnalysis.findMany({
             where: {
                 journalEntryId: journalEntryId,
-                userId: req.user.id
+                userId: req.user.id,
             },
-            orderBy: { createdAt: 'desc' }
+            orderBy: { createdAt: 'desc' },
         });
         const response = {
             success: true,
             data: analyses,
-            message: 'Análisis obtenidos exitosamente'
+            message: 'Análisis obtenidos exitosamente',
         };
         res.json(response);
     }
@@ -127,17 +127,17 @@ const getAnalysisById = async (req, res, next) => {
         const analysis = await prisma.aIAnalysis.findFirst({
             where: {
                 id,
-                userId: req.user.id
+                userId: req.user.id,
             },
             include: {
                 journalEntry: {
                     select: {
                         id: true,
                         content: true,
-                        createdAt: true
-                    }
-                }
-            }
+                        createdAt: true,
+                    },
+                },
+            },
         });
         if (!analysis) {
             return next((0, error_middleware_1.createError)('Análisis no encontrado', 404));
@@ -145,7 +145,7 @@ const getAnalysisById = async (req, res, next) => {
         const response = {
             success: true,
             data: analysis,
-            message: 'Análisis obtenido exitosamente'
+            message: 'Análisis obtenido exitosamente',
         };
         res.json(response);
     }
@@ -171,17 +171,17 @@ const getUserAnalyses = async (req, res, next) => {
                         select: {
                             id: true,
                             content: true,
-                            createdAt: true
-                        }
-                    }
+                            createdAt: true,
+                        },
+                    },
                 },
                 orderBy: { createdAt: 'desc' },
                 skip,
-                take: limit
+                take: limit,
             }),
             prisma.aIAnalysis.count({
-                where: { userId: req.user.id }
-            })
+                where: { userId: req.user.id },
+            }),
         ]);
         const totalPages = Math.ceil(total / limit);
         const response = {
@@ -191,9 +191,9 @@ const getUserAnalyses = async (req, res, next) => {
                 page,
                 limit,
                 total,
-                totalPages
+                totalPages,
             },
-            message: 'Análisis obtenidos exitosamente'
+            message: 'Análisis obtenidos exitosamente',
         };
         res.json(response);
     }
@@ -213,7 +213,7 @@ const setAIProvider = async (req, res, next) => {
         const response = {
             success: true,
             data: { provider },
-            message: `Proveedor de IA configurado a: ${provider}`
+            message: `Proveedor de IA configurado a: ${provider}`,
         };
         res.json(response);
     }

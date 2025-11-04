@@ -1,6 +1,5 @@
-export type AIProvider = 'gemini' | 'openai' | 'auto';
+export type AIProvider = 'openai';
 export declare class AIAnalysisService {
-    private geminiService;
     private openaiService;
     private preferredProvider;
     constructor(preferredProvider?: AIProvider);
@@ -8,7 +7,6 @@ export declare class AIAnalysisService {
         analysis: string;
         aiProvider: string;
     }>;
-    private tryWithFallback;
     private getLocalFallbackAnalysis;
     setPreferredProvider(provider: AIProvider): void;
     getPreferredProvider(): AIProvider;

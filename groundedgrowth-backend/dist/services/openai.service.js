@@ -11,7 +11,7 @@ class OpenAIService {
         const apiKey = process.env.OPENAI_API_KEY;
         if (apiKey) {
             this.openai = new openai_1.default({
-                apiKey: apiKey
+                apiKey: apiKey,
             });
             console.log('✅ Servicio OpenAI inicializado');
         }
@@ -31,10 +31,10 @@ class OpenAIService {
                 model: 'gpt-3.5-turbo',
                 messages: [
                     { role: 'system', content: systemPrompt },
-                    { role: 'user', content: userPrompt }
+                    { role: 'user', content: userPrompt },
                 ],
                 max_tokens: 800,
-                temperature: 0.7
+                temperature: 0.7,
             });
             const response = completion.choices[0]?.message?.content;
             if (!response) {
@@ -73,9 +73,7 @@ Directrices:
     `;
     }
     buildUserPrompt(entry, goals) {
-        const goalsText = goals.length > 0
-            ? `\n\nMetas del usuario:\n${goals.map(g => `- ${g}`).join('\n')}`
-            : '';
+        const goalsText = goals.length > 0 ? `\n\nMetas del usuario:\n${goals.map((g) => `- ${g}`).join('\n')}` : '';
         return `
 Analiza la siguiente entrada de diario:
 
@@ -102,7 +100,7 @@ Estructura tu respuesta en HTML con encabezados claros y formato profesional.
     }
     getSimulatedAnalysis(entry, goals) {
         const goalsList = goals.length > 0
-            ? goals.map(g => `<strong>${g}</strong>`).join(', ')
+            ? goals.map((g) => `<strong>${g}</strong>`).join(', ')
             : 'tus objetivos personales';
         return `
       <h4>Análisis Inteligente de tu Reflexión</h4>

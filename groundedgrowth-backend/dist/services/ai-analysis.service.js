@@ -1,81 +1,36 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AIAnalysisService = void 0;
-const gemini_service_1 = require("./gemini.service");
 const openai_service_1 = require("./openai.service");
 class AIAnalysisService {
-    constructor(preferredProvider = 'auto') {
-        this.geminiService = new gemini_service_1.GeminiService();
+    constructor(preferredProvider = 'openai') {
         this.openaiService = new openai_service_1.OpenAIService();
         this.preferredProvider = preferredProvider;
-        console.log(`🤖 Servicio de Análisis IA inicializado con proveedor: ${preferredProvider}`);
+        console.log(`🤖 Servicio de Análisis IA inicializado con OpenAI`);
     }
     async analyzeJournalEntry(entry, goals, provider) {
-        const selectedProvider = provider || this.preferredProvider;
-        console.log(`🔄 Iniciando análisis con proveedor: ${selectedProvider}`);
-        if (selectedProvider === 'gemini') {
-            const analysis = await this.geminiService.analyzeJournalEntry(entry, goals);
-            return {
-                analysis,
-                aiProvider: 'gemini'
-            };
-        }
-        else if (selectedProvider === 'openai') {
-            const analysis = await this.openaiService.analyzeJournalEntry(entry, goals);
-            return {
-                analysis,
-                aiProvider: 'openai'
-            };
-        }
-        else {
-            // Modo 'auto': Intentar OpenAI primero, luego Gemini
-            return this.tryWithFallback(entry, goals);
-        }
-    }
-    async tryWithFallback(entry, goals) {
-        console.log('🔄 Modo automático: Intentando OpenAI primero...');
+        console.log(`🔄 Iniciando análisis con OpenAI`);
         try {
-            // Intentar con OpenAI primero
-            const openaiAnalysis = await this.openaiService.analyzeJournalEntry(entry, goals);
-            // Si la respuesta contiene "simulación", significa que OpenAI no está disponible
-            if (openaiAnalysis.includes('simulación de OpenAI') || openaiAnalysis.includes('análisis de respaldo')) {
-                console.log('🔄 OpenAI no disponible, intentando con Gemini...');
-                const geminiAnalysis = await this.geminiService.analyzeJournalEntry(entry, goals);
-                return {
-                    analysis: geminiAnalysis,
-                    aiProvider: geminiAnalysis.includes('análisis de respaldo') ? 'local' : 'gemini'
-                };
-            }
+            const analysis = await this.openaiService.analyzeJournalEntry(entry, goals);
             console.log('✅ Análisis completado con OpenAI');
             return {
-                analysis: openaiAnalysis,
-                aiProvider: 'openai'
+                analysis,
+                aiProvider: 'openai',
             };
         }
         catch (error) {
-            console.log('🔄 Error con OpenAI, intentando con Gemini...', error);
-            try {
-                const geminiAnalysis = await this.geminiService.analyzeJournalEntry(entry, goals);
-                console.log('✅ Análisis completado con Gemini como fallback');
-                return {
-                    analysis: geminiAnalysis,
-                    aiProvider: geminiAnalysis.includes('análisis de respaldo') ? 'local' : 'gemini'
-                };
-            }
-            catch (geminiError) {
-                console.error('❌ Ambos servicios fallaron:', geminiError);
-                // Última opción: análisis local
-                return {
-                    analysis: this.getLocalFallbackAnalysis(entry, goals),
-                    aiProvider: 'local'
-                };
-            }
+            console.error('❌ Error con OpenAI:', error);
+            // Fallback a análisis local si OpenAI falla
+            return {
+                analysis: this.getLocalFallbackAnalysis(entry, goals),
+                aiProvider: 'local',
+            };
         }
     }
     getLocalFallbackAnalysis(entry, goals) {
         console.log('🔄 Usando análisis local como último recurso...');
         const goalsList = goals.length > 0
-            ? goals.map(g => `<strong>${g}</strong>`).join(', ')
+            ? goals.map((g) => `<strong>${g}</strong>`).join(', ')
             : 'tus objetivos personales';
         return `
       <h4>Análisis Básico de tu Reflexión</h4>

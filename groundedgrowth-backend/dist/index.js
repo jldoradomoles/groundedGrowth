@@ -57,8 +57,8 @@ app.use('/api/users', user_routes_1.default);
 app.use('/api/goals', goal_routes_1.default);
 app.use('/api/journal', journal_routes_1.default);
 app.use('/api/ai', ai_routes_1.default);
-// Ruta 404
-app.use('*', (req, res) => {
+// Ruta 404 - middleware para rutas no encontradas
+app.use((req, res) => {
     res.status(404).json({
         error: 'Endpoint no encontrado',
         path: req.originalUrl,

@@ -19,11 +19,11 @@ const getGoals = async (req, res, next) => {
                 where: { userId: req.user.id },
                 orderBy: { createdAt: 'desc' },
                 skip,
-                take: limit
+                take: limit,
             }),
             prisma.goal.count({
-                where: { userId: req.user.id }
-            })
+                where: { userId: req.user.id },
+            }),
         ]);
         const totalPages = Math.ceil(total / limit);
         const response = {
@@ -33,9 +33,9 @@ const getGoals = async (req, res, next) => {
                 page,
                 limit,
                 total,
-                totalPages
+                totalPages,
             },
-            message: 'Metas obtenidas exitosamente'
+            message: 'Metas obtenidas exitosamente',
         };
         res.json(response);
     }
@@ -66,14 +66,14 @@ const createGoal = async (req, res, next) => {
             data: {
                 userId: req.user.id,
                 title: title.trim(),
-                description: description?.trim() || null
-            }
+                description: description?.trim() || null,
+            },
         });
         console.log(`✅ Meta creada: ${newGoal.title} - Usuario: ${req.user.email}`);
         const response = {
             success: true,
             data: newGoal,
-            message: 'Meta creada exitosamente'
+            message: 'Meta creada exitosamente',
         };
         res.status(201).json(response);
     }
@@ -92,8 +92,8 @@ const getGoalById = async (req, res, next) => {
         const goal = await prisma.goal.findFirst({
             where: {
                 id,
-                userId: req.user.id // Asegurar que solo puede ver sus propias metas
-            }
+                userId: req.user.id, // Asegurar que solo puede ver sus propias metas
+            },
         });
         if (!goal) {
             return next((0, error_middleware_1.createError)('Meta no encontrada', 404));
@@ -101,7 +101,7 @@ const getGoalById = async (req, res, next) => {
         const response = {
             success: true,
             data: goal,
-            message: 'Meta obtenida exitosamente'
+            message: 'Meta obtenida exitosamente',
         };
         res.json(response);
     }
@@ -122,8 +122,8 @@ const updateGoal = async (req, res, next) => {
         const existingGoal = await prisma.goal.findFirst({
             where: {
                 id,
-                userId: req.user.id
-            }
+                userId: req.user.id,
+            },
         });
         if (!existingGoal) {
             return next((0, error_middleware_1.createError)('Meta no encontrada', 404));
@@ -151,13 +151,13 @@ const updateGoal = async (req, res, next) => {
         // Actualizar meta
         const updatedGoal = await prisma.goal.update({
             where: { id },
-            data: updateData
+            data: updateData,
         });
         console.log(`✅ Meta actualizada: ${updatedGoal.title} - Usuario: ${req.user.email}`);
         const response = {
             success: true,
             data: updatedGoal,
-            message: 'Meta actualizada exitosamente'
+            message: 'Meta actualizada exitosamente',
         };
         res.json(response);
     }
@@ -177,20 +177,20 @@ const deleteGoal = async (req, res, next) => {
         const existingGoal = await prisma.goal.findFirst({
             where: {
                 id,
-                userId: req.user.id
-            }
+                userId: req.user.id,
+            },
         });
         if (!existingGoal) {
             return next((0, error_middleware_1.createError)('Meta no encontrada', 404));
         }
         // Eliminar meta
         await prisma.goal.delete({
-            where: { id }
+            where: { id },
         });
         console.log(`✅ Meta eliminada: ${existingGoal.title} - Usuario: ${req.user.email}`);
         const response = {
             success: true,
-            message: 'Meta eliminada exitosamente'
+            message: 'Meta eliminada exitosamente',
         };
         res.json(response);
     }

@@ -2,11 +2,12 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { GoalService, Goal } from '../../services/goal.service';
+import { ConfirmationModalComponent } from '../confirmation-modal/confirmation-modal.component';
 
 @Component({
   selector: 'app-metas',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ConfirmationModalComponent],
   template: `
     <div class="p-6">
       <!-- Header -->
@@ -106,7 +107,7 @@ import { GoalService, Goal } from '../../services/goal.service';
 
               <!-- Delete Button -->
               <button
-                (click)="deleteGoal(goal.id)"
+                (click)="openDeleteConfirmation(goal)"
                 class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                 title="Eliminar meta"
               >
@@ -145,6 +146,18 @@ import { GoalService, Goal } from '../../services/goal.service';
         <p class="text-gray-600">Cargando metas...</p>
       </div>
       }
+
+      <!-- Confirmation Modal -->
+      <app-confirmation-modal
+        [isOpen]="showDeleteModal()"
+        [title]="'¿Eliminar esta meta?'"
+        [message]="getDeleteMessage()"
+        [confirmText]="'Sí, eliminar'"
+        [cancelText]="'Cancelar'"
+        [type]="'danger'"
+        (confirm)="confirmDelete()"
+        (cancel)="cancelDelete()"
+      />
     </div>
   `,
   styleUrl: './metas.component.scss',
@@ -157,6 +170,8 @@ export class MetasComponent implements OnInit {
   newGoalText = '';
   isLoading = signal(false);
   errorMessage = signal('');
+  showDeleteModal = signal(false);
+  goalToDelete = signal<Goal | null>(null);
 
   ngOnInit(): void {
     this.loadGoals();
@@ -220,20 +235,40 @@ export class MetasComponent implements OnInit {
     });
   }
 
-  deleteGoal(goalId: string): void {
-    if (!confirm('¿Estás seguro de que quieres eliminar esta meta?')) return;
+  openDeleteConfirmation(goal: Goal): void {
+    this.goalToDelete.set(goal);
+    this.showDeleteModal.set(true);
+  }
 
-    this.goalService.deleteGoal(goalId).subscribe({
+  confirmDelete(): void {
+    const goal = this.goalToDelete();
+    if (!goal) return;
+
+    this.goalService.deleteGoal(goal.id).subscribe({
       next: (response) => {
         if (response.success) {
-          this.goals.update((goals) => goals.filter((g) => g.id !== goalId));
+          this.goals.update((goals) => goals.filter((g) => g.id !== goal.id));
+          this.showDeleteModal.set(false);
+          this.goalToDelete.set(null);
         }
       },
       error: (error) => {
         this.errorMessage.set('Error al eliminar la meta');
         console.error('Error deleting goal:', error);
+        this.showDeleteModal.set(false);
       },
     });
+  }
+
+  cancelDelete(): void {
+    this.showDeleteModal.set(false);
+    this.goalToDelete.set(null);
+  }
+
+  getDeleteMessage(): string {
+    const goal = this.goalToDelete();
+    if (!goal) return '';
+    return `Esta acción no se puede deshacer. La meta "${goal.title}" será eliminada permanentemente.`;
   }
 
   // Utility methods
